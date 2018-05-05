@@ -1,6 +1,6 @@
 import os # Incase we need to mess with Heroku Dyno binaries/packages.
 
-from flask import Flask
+from flask import Flask, make_response, jsonify
 from flask_restful import reqparse, Resource
 from flask_cors import CORS, cross_origin
 
@@ -15,13 +15,21 @@ CORS(app)
 url = urlparse('postgres://ucyroaeunxxsrn:e042657f9582726c420bf5bc72987796f029d915b78a756b3fa93c0d8603276c@ec2-174-129-225-9.compute-1.amazonaws.com:5432/d8rdejefc72ive')
 Database.initialize(database=url.path[1:], user=url.username, password=url.password, host=url.hostname, sslmode='require')
 
-@app.route('/api/v1/getLocations')
+@app.route('/api/v1/getLocations', methods=['GET'])
 def hello_world():
-    return 'Hello, World!'
+	with CursorFromConnectionFromPool() as cursor:
+		try:
+			sql_string = 'SELECT * from locations'
+			cursor.execute(sql_string)
+			result = cursor.fetchall()
+			return jsonify(result)
+		except psycopg2.IntegrityError:
+			print('Error ...')
+
+	return 'Hello, World!'
 
 @app.route('/api/v1/postLocation', methods=['POST'])
 def postLocation():
-	print('Hi ... ')
 	parser = reqparse.RequestParser(bundle_errors=True)
 	parser.add_argument('lat', required=True, help="You need latitude.")
 	parser.add_argument('lng', required=True, help="You need longitude.")
@@ -30,14 +38,12 @@ def postLocation():
 
 	args = parser.parse_args()
 
-	print('Args: {}'.format(args['lat']))
 	response = None
 	with CursorFromConnectionFromPool() as cursor:
 		try:
 			sql_string = 'INSERT INTO locations (lat, lng, phone, severity) VALUES (%s, %s, %s, %s) RETURNING id, lat, lng, phone, severity'
 			cursor.execute(sql_string, (args['lat'], args['lng'], args['phone'], args['severity']))
 			id_of_new_row = cursor.fetchone()
-			print ('Lat from DB ... {}'.format(id_of_new_row[1]))
 			response = {
 				'message:' : 'location created successfully',
 				'status' : 201,
@@ -47,10 +53,13 @@ def postLocation():
 				'phone' : id_of_new_row[3],
 				'severity' : id_of_new_row[4]
 			}
+			return jsonify(response)
 		except psycopg2.IntegrityError:
 			# We already have an entry with the same email address (return HTTP code 409 - conflict).
-			return {'message:' :'Duplicate Location' , 'status' : 409}
-	return response
+			response = {'message:' :'Duplicate Location' , 'status' : 409}
+			return jsonify(response)
+
+	
 
 if __name__ == "__main__":
 	app.run(port=5000, debug=True)
