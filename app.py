@@ -15,6 +15,7 @@ CORS(app)
 url = urlparse('postgres://ucyroaeunxxsrn:e042657f9582726c420bf5bc72987796f029d915b78a756b3fa93c0d8603276c@ec2-174-129-225-9.compute-1.amazonaws.com:5432/d8rdejefc72ive')
 Database.initialize(database=url.path[1:], user=url.username, password=url.password, host=url.hostname, sslmode='require')
 
+''' GET '''
 @app.route('/api/v1/getLocations', methods=['GET'])
 def hello_world():
 	with CursorFromConnectionFromPool() as cursor:
@@ -24,10 +25,11 @@ def hello_world():
 			result = cursor.fetchall()
 			return jsonify(result)
 		except psycopg2.IntegrityError:
-			print('Error ...')
+			result = {'message' : 'Resources not found.', 'status' : 404}
+			jsonify(result)
 
-	return 'Hello, World!'
 
+''' POST '''
 @app.route('/api/v1/postLocation', methods=['POST'])
 def postLocation():
 	parser = reqparse.RequestParser(bundle_errors=True)
