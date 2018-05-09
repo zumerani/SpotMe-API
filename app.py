@@ -1,6 +1,6 @@
 import os # Incase we need to mess with Heroku Dyno binaries/packages.
 
-from flask import Flask, make_response, jsonify
+from flask import Flask, make_response, jsonify, Response, render_template
 from flask_restful import reqparse, Resource
 from flask_cors import CORS, cross_origin
 
@@ -8,6 +8,8 @@ from database import Database
 from database import CursorFromConnectionFromPool
 from urllib.parse import urlparse # To parse Heroku DB URL.
 import psycopg2
+
+import xml.etree.cElementTree as ET
 
 app = Flask(__name__)
 CORS(app)
@@ -23,7 +25,18 @@ def hello_world():
 			sql_string = 'SELECT * from locations'
 			cursor.execute(sql_string)
 			result = cursor.fetchall()
-			return jsonify(result)
+
+			root = ET.Element("markers")
+
+			for res in result:
+				marker = ET.SubElement(root, "marker", id="Array", lat='{}'.format(res[0]), lng='{}'.format(res[1]), 
+					phone='{}'.format(res[2]), severity='{}'.format(res[3]))
+
+			tree = ET.ElementTree(root)			
+			
+			tree.write('templates/file.xml')
+			data = ET.dump(root)
+			return render_template('file.xml'), 201, {'Content-Type': 'text/xml'}
 		except psycopg2.IntegrityError:
 			result = {'message' : 'Resources not found.', 'status' : 404}
 			jsonify(result)
