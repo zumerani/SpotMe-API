@@ -29,8 +29,8 @@ def hello_world():
 			root = ET.Element("markers")
 
 			for res in result:
-				marker = ET.SubElement(root, "marker", id="Array", lat='{}'.format(res[0]), lng='{}'.format(res[1]), 
-					phone='{}'.format(res[2]), severity='{}'.format(res[3]))
+				marker = ET.SubElement(root, "marker", id="Array", lat='{}'.format(res[1]), lng='{}'.format(res[2]), 
+					phone='{}'.format(res[3]), severity='{}'.format(res[4]))
 
 			tree = ET.ElementTree(root)			
 			
